@@ -559,12 +559,10 @@ def level_5_pw_check():
 
 level_5_pw_check()
 ```
-* 以上這段程式碼的目的是檢查使用者輸入的密碼是否正確，並使用正確的密碼解密加密的旗標檔案 level5.flag.txt.enc。以下是解密的步驟：
+* This code is used to check whether the password entered by the user is correct, and if so, decrypt the encrypted flag file level5.flag.txt.enc using the correct password. The decryption process is as follows:
 
-    1. 檢查密碼的 hash 值：
-使用者輸入密碼後，程式會將密碼轉換為 MD5 哈希值，並與檔案 level5.hash.bin 中的正確哈希值進行比較。
-    2. 解密旗標：
-如果密碼正確，程式會使用 str_xor 函數和密碼來解密 level5.flag.txt.enc 的內容，並輸出解密後的旗標。
+    1. Check the password hash: After the user enters a password, the program converts it into an MD5 hash and compares it with the correct hash stored in level5.hash.bin.
+    2. Decrypt the flag: If the password is correct, the program uses the str_xor function together with the password to decrypt the contents of level5.flag.txt.enc and outputs the decrypted flag.
 
 decode.py:
 ```
@@ -586,24 +584,24 @@ def str_xor(secret, key):
         i = (i + 1) % len(key)        
     return "".join([chr(ord(secret_c) ^ ord(new_key_c)) for (secret_c, new_key_c) in zip(secret, new_key)])
 
-# 讀取正確的哈希值
+# read correct hash value
 correct_pw_hash = open('level5.hash.bin', 'rb').read()
 
-# 讀取加密的旗標
+# read encrypted flag
 flag_enc = open('level5.flag.txt.enc', 'rb').read()
 
-# 使用字典檔案進行暴力破解
+# use dictionary to brute force
 with open('dictionary.txt', 'r') as f:
     for line in f:
-        password = line.strip()  # 去除換行符號
+        password = line.strip()  
         if hash_pw(password) == correct_pw_hash:
-            print(f"找到正確密碼: {password}")
+            print(f"find password: {password}")
             
-            # 使用正確密碼解密旗標
+            # use correct password to decrypt flag
             decrypted_flag = str_xor(flag_enc.decode(), password)
-            print(f"解密後的旗標: {decrypted_flag}")
+            print(f"flag: {decrypted_flag}")
             break
     else:
-        print("未能找到正確的密碼")
+        print("can't find correct password")
 ```
 **Flag: picoCTF{h45h_sl1ng1ng_40f26f81}**
