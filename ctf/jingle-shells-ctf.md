@@ -3,27 +3,27 @@
 
 ### 1. Recon
 
-進入網站後，登入頁面沒有任何後端互動，HTML 原始碼最後載入了一個外部 JavaScript：
+After entering the site, the login page had no backend interaction. At the end of the HTML source, an external JavaScript file was loaded:
 
 ```html
 <script src="assets/main.js"></script>
 ```
 
-因此將重點放在前端 JavaScript。
+So the focus shifted to the frontend JavaScript.
 
 ---
 
 ### 2. Source Code Analysis
 
-直接存取 `assets/main.js`：
+Directly access `assets/main.js`:
 
 ```bash
 $ curl -s https://ch3.northpole.acucysctf.org/assets/main.js
 ```
 
-發現登入函式 `tryLogin()` 永遠回傳失敗，並未實際驗證帳密。
+The `tryLogin()` function always returns failure and does not actually validate credentials.
 
-在同一個檔案中，存在一個未被呼叫的函式：
+In the same file, there is an uncalled function:
 
 ```bash
 $ curl -s https://ch3.northpole.acucysctf.org/assets/main.js | sed -n '1,200p'
@@ -62,11 +62,11 @@ function heartbeat(){
 }
 ```
 
-註解明確指出這是開發時遺留的 helper function，flag 被硬編碼在前端。
+The comments clearly indicate this is a leftover developer helper function, and the flag is hardcoded in the frontend.
 
 **Flag: AUCTF{0ce073a567bcad87f2e5b37181f3e36d}**
 
-下面是一份**精簡、標準 CTF write-up**，不多餘說明，可直接提交。
+Below is a **concise, standard CTF write-up** with no unnecessary explanation, ready to submit.
 
 
 # Steganography
@@ -74,8 +74,8 @@ function heartbeat(){
 
 ### 1. Recon
 
-題目提供一個 Windows `.exe`，並提示「Run the .exe file artefact with the notes to get the flag」。
-使用 `file` 與 `strings` 檢查後，發現出現 `PYINSTALLER` 相關字串，判斷為 **PyInstaller 打包的 Python 程式**。
+The challenge provides a Windows `.exe` and hints: "Run the .exe file artefact with the notes to get the flag".
+After checking with `file` and `strings`, `PYINSTALLER`-related strings appeared, indicating it is a **Python program packaged with PyInstaller**.
 ```bash
 $ file jinglebells.pyc 
 jinglebells.pyc: data
@@ -85,7 +85,7 @@ jinglebells.pyc: data
 
 ### 2. Unpacking
 
-使用 `pyinstxtractor.py` 對執行檔進行解包：
+Use `pyinstxtractor.py` to unpack the executable:
 
 ```bash
 $ python3 pyinstxtractor.py ~/Desktop/JingleBells.exe 
@@ -108,13 +108,13 @@ You can now use a python decompiler on the pyc files within the extracted direct
 
 ```
 
-成功解出 `JingleBells/` 目錄，其中包含主程式 `jinglebells.pyc`。
+The `JingleBells/` directory was successfully extracted, containing the main program `jinglebells.pyc`.
 
 ---
 
 ### 3. Analysis
 
-直接對 `jinglebells.pyc` 進行字串分析：
+Run string analysis directly on `jinglebells.pyc`:
 
 ```bash
 $ cd JingleBells.exe_extracted   
@@ -168,10 +168,10 @@ jinglebells.py
 <module>r
 ```
 
-輸出中可見以下關鍵內容：
+The output reveals these key points:
 
-* 程式提示輸入 Jingle Bells 的前 11 個音符
-* 使用音名格式：`C D E F G A B`
-* flag 以明文形式硬編碼在程式中
+* The program asks for the first 11 notes of Jingle Bells
+* Note format: `C D E F G A B`
+* The flag is hardcoded in plaintext in the program
 
 **Flag: AUCTF{CHRISTMAS_MELODY}**
