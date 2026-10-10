@@ -1,8 +1,8 @@
 ## HITCON CTF – Crypto – \so easy rsa
 
-### 題目給的檔案
+### Provided Files
 
-* `chal.py`：RSA 金鑰生成邏輯，質數 $p, q$ 不是用安全隨機數產生，而是來自 **線性同餘生成器** (LCG)。
+* `chal.py`: RSA key-generation logic. The primes $p, q$ are not generated with secure randomness, but from a **Linear Congruential Generator** (LCG).
     ```python!
     from gmpy2 import next_prime, is_prime
     from random import randint
@@ -45,7 +45,7 @@
 
     ```
 
-* `output`：包含 $n, A, B, M, c$：
+* `output`: contains $n, A, B, M, c$:
 
   ```
   n
@@ -60,31 +60,31 @@
 
   ```
 
-### 題目觀察
+### Observations
 
-從 `chal.py` 可看到：
+From `chal.py`, we can see:
 
 ```python
 x_{t+1} = (A * x_t + B) % M
 ```
 
-然後：
+Then:
 
-* 取某次 LCG 輸出為 $p$（質數）
-* 往後 $k$ 步輸出為 $q$（質數）
+* Take one LCG output as $p$ (a prime)
+* Take the output $k$ steps later as $q$ (a prime)
 * $n = p \times q$
-* RSA 公鑰 $(n, e)$，$e = 65537$
+* RSA public key $(n, e)$, where $e = 65537$
 
-由於 LCG 參數 $A, B, M$ 與 $n, c$ 都已知，問題化為：
-**如何從 LCG 關係恢復 $p, q$ 並解密得到 flag。**
+Since LCG parameters $A, B, M$ and $n, c$ are all known, the problem becomes:
+**How to recover $p, q$ from the LCG relation and decrypt the flag.**
 
 ---
 
-### 分析
+### Analysis
 
-### LCG 遞迴展開
+### LCG Recurrence Expansion
 
-定義：
+Define:
 
 $$
 A_k \equiv A^k \pmod M
@@ -94,21 +94,21 @@ $$
 C_k \equiv B \cdot (1 + A + A^2 + \dots + A^{k-1}) \pmod M
 $$
 
-可用遞迴計算：
+This can be computed recursively:
 
 $$
 C_1 = B,\quad C_{t+1} \equiv A\cdot C_t + B \pmod M
 $$
 
-由 LCG 性質：
+From LCG properties:
 
 $$
 q \equiv A_k \cdot p + C_k \pmod M
 $$
 
-### 導出二次同餘式
+### Deriving the Quadratic Congruence
 
-已知 $n = p q$，代入：
+Given $n = p q$, substitute:
 
 $$
 n \equiv p \cdot q \equiv p (A_k p + C_k) \pmod M
@@ -118,62 +118,62 @@ $$
 \Rightarrow A_k p^2 + C_k p - n \equiv 0 \pmod M
 $$
 
-這是一個模 $M$ 的二次方程式：
+This is a quadratic equation modulo $M$:
 
 $$
 a p^2 + b p - n \equiv 0 \ (\bmod\ M)
 $$
 
-其中 $a = A_k \bmod M,\ b = C_k \bmod M$。
+where $a = A_k \bmod M,\ b = C_k \bmod M$.
 
 ---
 
-## 解法
+## Solution
 
-1. **枚舉 $k$**
-   由於題目沒告訴 $p, q$ 相隔幾步，直接嘗試 $k = 1 \dots K_{\max}$（這題設 $K_{\max} = 50000$ 足夠）。
+1. **Enumerate $k$**
+   Since the challenge does not tell how many steps apart $p, q$ are, directly try $k = 1 \dots K_{\max}$ (for this challenge, $K_{\max} = 50000$ is enough).
 
-2. **解模 $M$ 的二次方程式**
-   判別式：
+2. **Solve the quadratic modulo $M$**
+   Discriminant:
 
    $$
    D \equiv b^2 + 4 a n \pmod M
    $$
 
-   若 $D$ 在模 $M$ 下有平方根（用 Tonelli–Shanks 演算法），則：
+   If $D$ has a square root modulo $M$ (via Tonelli–Shanks), then:
 
    $$
    p \equiv \frac{-b \pm \sqrt{D}}{2a} \pmod M
    $$
 
-3. **驗證 $p$**
-   對每個候選 $p$，計算 $g = \gcd(n, p)$：
+3. **Validate $p$**
+   For each candidate $p$, compute $g = \gcd(n, p)$:
 
-   * 若 $1 < g < n$，即找到真實的 $p$。
-   * 另一個質數 $q = n / p$。
+   * If $1 < g < n$, you found the real $p$.
+   * The other prime is $q = n / p$.
 
-4. **RSA 解密**
+4. **RSA Decryption**
 
    $$
    \varphi(n) = (p-1)(q-1),\quad d \equiv e^{-1} \pmod{\varphi(n)}
    $$
 
-   明文：
+   Plaintext:
 
    $$
    m \equiv c^d \pmod n
    $$
 
-   再轉換為 bytes，即可得到 flag。
+   Convert to bytes to recover the flag.
 
 ---
 
-## Exploit 程式碼
+## Exploit Code
 
 ```python
 from math import gcd
 
-# Tonelli–Shanks 求平方根
+# Tonelli–Shanks modular square root
 def legendre(a, p): return pow(a, (p - 1) // 2, p)
 def mod_sqrt(n, p):
     if n == 0: return 0
@@ -203,7 +203,7 @@ def mod_sqrt(n, p):
 
 def inv(a, m): return pow(a, -1, m)
 
-# 題目給的數據
+# Provided challenge data
 n = 258720332534100287234458110010185155261130153254107442235854414506170536384060781366385258399243052901972558998237319622949803003628352468038779889447749958031079924389696834908608708311694932037259947294352067926932155092194117105684832481620765614657816427294107055109317830777750924756091556427290450319
 A = 5005408141313345292407945953835071149806179641852075007515684286050215929954837846280174872639627250238013460230160536843037257042746543278346526830149401
 B = 10298048151006208752433869042311201313715296070490185742808091797981718158025069645386345886679150152180335525547545682404445248373464275107700557029336907
@@ -232,16 +232,16 @@ for k in range(1, 50000):
     Ck = (Ck * A + B) % M
 ```
 
-### 執行結果
+### Result
 
-最終找到：
+Final result:
 
 * $k = 827$
-* $p, q$ 各約 508 bits
+* $p, q$ are each about 508 bits
 
 **Flag: hitcon{too_weak_randomnesssssss}**
 
-### 重點
-* LCG 的輸出若直接用作質數，會在模數 $M$ 下留下線性關係。
-* 透過已知的 $A, B, M$，可以把未知的 $p, q$ 聯立成模 $M$ 的二次方程式，然後用平方根解法恢復 $p$。
-* 枚舉步數 $k$ 是必要的，但通常 $k$ 不會太大。
+### Key Takeaways
+* If LCG outputs are directly used as primes, they leave linear relations modulo $M$.
+* With known $A, B, M$, unknown $p, q$ can be linked into a quadratic equation modulo $M$, then recovered through modular square roots.
+* Enumerating step count $k$ is necessary, but in practice $k$ is usually not too large.
