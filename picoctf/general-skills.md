@@ -519,21 +519,91 @@ print(flag)
 **Flag: picoCTF{7h3_r04d_l355_7r4v3l3d_8e47d128}**
 
 ## PW Crack 5
-`level5.py`:
-
-```python
+level5.py:
+```
 import hashlib
 
-# THIS FUNCTION WILL NOT HELP YOU FIND THE FLAG --LT ########################
+### THIS FUNCTION WILL NOT HELP YOU FIND THE FLAG --LT ########################
 def str_xor(secret, key):
+    #extend key to secret length
     new_key = key
     i = 0
     while len(new_key) < len(secret):
         new_key = new_key + key[i]
-        i = (i + 1) % len(key)
-    return "".join([chr(ord(secret_c) ^ ord(new_key_c)) for (secret_c, new_key_c) in zip(secret, new_key)])
+        i = (i + 1) % len(key)        
+    return "".join([chr(ord(secret_c) ^ ord(new_key_c)) for (secret_c,new_key_c) in zip(secret,new_key)])
 ###############################################################################
 
 flag_enc = open('level5.flag.txt.enc', 'rb').read()
-```
+correct_pw_hash = open('level5.hash.bin', 'rb').read()
 
+
+def hash_pw(pw_str):
+    pw_bytes = bytearray()
+    pw_bytes.extend(pw_str.encode())
+    m = hashlib.md5()
+    m.update(pw_bytes)
+    return m.digest()
+
+
+def level_5_pw_check():
+    user_pw = input("Please enter correct password for flag: ")
+    user_pw_hash = hash_pw(user_pw)
+    
+    if( user_pw_hash == correct_pw_hash ):
+        print("Welcome back... your flag, user:")
+        decryption = str_xor(flag_enc.decode(), user_pw)
+        print(decryption)
+        return
+    print("That password is incorrect")
+
+level_5_pw_check()
+```
+* 以上這段程式碼的目的是檢查使用者輸入的密碼是否正確，並使用正確的密碼解密加密的旗標檔案 level5.flag.txt.enc。以下是解密的步驟：
+
+    1. 檢查密碼的 hash 值：
+使用者輸入密碼後，程式會將密碼轉換為 MD5 哈希值，並與檔案 level5.hash.bin 中的正確哈希值進行比較。
+    2. 解密旗標：
+如果密碼正確，程式會使用 str_xor 函數和密碼來解密 level5.flag.txt.enc 的內容，並輸出解密後的旗標。
+
+decode.py:
+```
+import hashlib
+
+def hash_pw(pw_str):
+    pw_bytes = bytearray()
+    pw_bytes.extend(pw_str.encode())
+    m = hashlib.md5()
+    m.update(pw_bytes)
+    return m.digest()
+
+def str_xor(secret, key):
+    # Extend key to match the length of the secret
+    new_key = key
+    i = 0
+    while len(new_key) < len(secret):
+        new_key = new_key + key[i]
+        i = (i + 1) % len(key)        
+    return "".join([chr(ord(secret_c) ^ ord(new_key_c)) for (secret_c, new_key_c) in zip(secret, new_key)])
+
+# 讀取正確的哈希值
+correct_pw_hash = open('level5.hash.bin', 'rb').read()
+
+# 讀取加密的旗標
+flag_enc = open('level5.flag.txt.enc', 'rb').read()
+
+# 使用字典檔案進行暴力破解
+with open('dictionary.txt', 'r') as f:
+    for line in f:
+        password = line.strip()  # 去除換行符號
+        if hash_pw(password) == correct_pw_hash:
+            print(f"找到正確密碼: {password}")
+            
+            # 使用正確密碼解密旗標
+            decrypted_flag = str_xor(flag_enc.decode(), password)
+            print(f"解密後的旗標: {decrypted_flag}")
+            break
+    else:
+        print("未能找到正確的密碼")
+```
+**Flag: picoCTF{h45h_sl1ng1ng_40f26f81}**
