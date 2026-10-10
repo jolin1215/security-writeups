@@ -1,12 +1,12 @@
 ### constructor
 
-這是一個關鍵在於辨識反編譯器 (Decompiler) 的錯誤，並回歸到最根本的組合語言來理解程式的真實行為。
+The key to this challenge is identifying decompiler mistakes and going back to raw assembly to understand the program's real behavior.
 
-#### **1. 初步分析 (Initial Analysis)**
+#### **1. Initial Analysis**
 
-挑戰提供了一個 C++ 原始碼檔案 `constructor.cpp` 和一個編譯好的執行檔 `constructor`。
+The challenge provides a C++ source file `constructor.cpp` and a compiled executable `constructor`.
 
-首先查看 `constructor.cpp`：
+First, inspect `constructor.cpp`:
 
 ````cpp
 #include <iostream>
@@ -41,25 +41,25 @@ int main() {
 }
 ````
 
-程式碼的亮點是 `__attribute__((constructor))`，這意味著 `solve()` 函數會在 `main` 函數執行之前被呼叫。
+The key detail is `__attribute__((constructor))`, meaning `solve()` is called before `main()`.
 
-`solve()` 函數的邏輯看起來是：
-1.  從 `/dev/urandom` 讀取 42 個隨機位元組到 `flag` 陣列。
-2.  對這 42 個位元組進行一系列的 XOR 和加法運算。
+`solve()` appears to do the following:
+1.  Read 42 random bytes from `/dev/urandom` into `flag`.
+2.  Apply XOR and addition operations to those 42 bytes.
 
-如果這是程式的真實行為，那麼 flag 將會是隨機的，無法求解。這暗示：**原始碼是具有欺騙性的，真正的邏輯在編譯後的二進位檔案中。**
+If this were true behavior, the flag would be random and unsolvable. This suggests the source is misleading, and the real logic is in the compiled binary.
 
-#### **2. 深入彙編 (Diving into Assembly)**
+#### **2. Diving into Assembly**
 
-使用 IDA 工具來分析 `constructor` 執行檔。定位到 `solve` 函數 
+Use IDA to analyze `constructor` and locate `solve`.
 
-* 反編譯結果的陷阱
+* Decompiler Pitfall
 
-    IDA 的反編譯結果可能與原始碼相似，但會出現一些奇怪的現象，例如對一個從未被初始化的陣列進行操作。這進一步證實了反編譯器可能沒有完全理解程式碼。
+    IDA's decompilation may resemble the source but shows odd behavior, like operating on an uninitialized array, further confirming decompiler misunderstanding.
 
-* 組合語言才是真相 (The Assembly is the Truth)
+* Assembly Is the Truth
 
-    必須直接閱讀組合語言來確定到底發生了什麼。以下是 `solve` 函數核心迴圈的組合語言：
+    You must read assembly directly to determine what really happens. Core loop of `solve`:
 
     ```nasm
     .text:00000000004011D2                 mov     rax, [rbp+i]
@@ -77,31 +77,31 @@ int main() {
     .text:00000000004011FB                 mov     [rbp+flag+rax], cl      ; [7] flag[i] = result
     ```
 
-    關鍵的發現是 `[1]` 這一行：`movzx eax, byte ptr [rdx+rax]`。在迴圈開始前，`rdx` 被設定為一個記憶體位址：
+    The key finding is line `[1]`: `movzx eax, byte ptr [rdx+rax]`. Before the loop, `rdx` is set to a memory address:
 
     ```nasm
     .text:00000000004011C7                 mov     rdx, cs:a3_data ; "3!..."
     ```
-    `a3_data` 指向 `.rodata` 區段的一個位址 `0x403040`。這表示程式**並不是**從 `/dev/urandom` 讀取資料，而是使用一個硬編碼在執行檔中的 42 位元組陣列！
+    `a3_data` points to `.rodata` at `0x403040`, meaning the program is **not** reading `/dev/urandom`; it uses a hardcoded 42-byte array in the binary.
 
-#### **3. 演算法還原與求解**
+#### **3. Algorithm Reconstruction and Solve**
 
-從 `.rodata` 區段位址 `0x403040` 提取出這 42 個位元組的資料。
+Extract the 42 bytes from `.rodata` address `0x403040`.
 
-然後，根據組合語言的邏輯，可以編寫一個 Python 腳本來模擬解密過程：
+Then, based on assembly logic, write a Python script to simulate decryption:
 
-1.  初始化一個變數 `v6 = 0`。
-2.  遍歷 42 個位元組，索引為 `i`。
+1.  Initialize `v6 = 0`.
+2.  Iterate over 42 bytes with index `i`.
 3.  `v8 = v6 ^ a3_data[i]`
-4.  `v6 = v6 + 31` (注意保持在 32 位元範圍內)
+4.  `v6 = v6 + 31` (keep within 32-bit range).
 5.  `result = (i >> 1) ^ v8 ^ 0x5A`
-6.  將 `result` 的最低位元組 (`result & 0xFF`) 存為 flag 的第 `i` 個字元。
+6.  Store the lowest byte of `result` (`result & 0xFF`) as flag character `i`.
 
 **Solver Script :**
 
 ````python
 def solve():
-    # 從 .rodata:0x403040 提取的 42 位元組資料
+    # 42-byte data extracted from .rodata:0x403040
     a3_data = bytes([
         0x33, 0x21, 0x00, 0x6d, 0x5f, 0xab, 0x86, 0xb4,
         0xd4, 0x2d, 0x36, 0x3a, 0x4e, 0x90, 0x8c, 0xe3,
@@ -115,12 +115,12 @@ def solve():
     v6 = 0
     
     for i in range(42):
-        # 模擬組合語言邏輯
+        # Simulate assembly logic
         v8 = v6 ^ a3_data[i]
-        v6 = (v6 + 31) & 0xFFFFFFFF # 模擬32位元無號整數加法
+        v6 = (v6 + 31) & 0xFFFFFFFF # simulate 32-bit unsigned addition
         v9 = (i >> 1) ^ v8 ^ 0x5A
         
-        # mov [rax], cl 只移動最低位元組
+        # mov [rax], cl writes only the lowest byte
         flag[i] = v9 & 0xFF
 
     print(f"[*] Flag: {flag.decode('utf-8')}")
@@ -129,28 +129,28 @@ if __name__ == "__main__":
     solve()
 ````
 
-#### **4. 獲取 Flag**
+#### **4. Retrieve the Flag**
 
-執行上述 Python 腳本，即可得到最終的 Flag。
+Run the script above to obtain the final flag.
 
 ```shell
 $ python solve.py
 [*] Flag: idek{he4rd_0f_constructors?_now_you_d1d!!}
 ```
 
-#### **結論**
+#### **Conclusion**
 
-這個挑戰的核心教訓是：**不要完全相信原始碼或反編譯器的輸出**。它們是很好的起點，但組合語言才是程式行為的最終權威。
+Core lesson: **do not fully trust source code or decompiler output**. They are good starting points, but assembly is the final authority on behavior.
 
-好的，這是一份針對此 CTF 題目的中文 Writeup。
+Below is a write-up for this CTF challenge.
 
 ---
 
 ### gacha-gate 
 
-#### **題目分析**
+#### **Challenge Analysis**
 
-這是一道 Misc 類型的題目。連接到遠端伺服器後，它會要求玩一個遊戲。遊戲內容與規則如下：
+This is a Misc challenge. After connecting to the remote server, it asks you to play a game with these rules:
 ```shell
 $ nc gacha-gate.chal.idek.team 1337
 == proof-of-work: disabled ==
@@ -158,9 +158,9 @@ lets play a game!
 ((((iiiliIIlll & (~((IiIlIllIll | (~(~(1132183904 | iIllIIillI)))) | 1390768878))) & (((((((liilIliiil ^ liIllIiliI) | (~1601386568)) ^ ((~2099381271) ^ (2161683113 & 995798985))) & (~((~2945857245) & (~IIIliIIlll)))) & 1288124991) | (~((iIiiIIIiiI ^ ((3501406885 & IlIlllIIIi) & IlIiiliIiI)) & ((~1695738124) | (1570513183 & (~956341317)))))) | IllilIiIll)) | (((1770909462 & (((~(4126174599 ^ (1676452920 & 3107131465))) & (~(~(illIiiiIIi | illIIIlIll)))) | ((((IiiIiliIII ^ 3637989455) & (iIilIIiliI ^ 1829704191)) & ((2563237554 & illiliIlil) & (lIlllliiIl | 4091089967))) & IliIiIilIi))) ^ (((~(((2109240680 ^ IlllIIliIl) | IiiiIlilii) & (~(1799678504 ^ liiIiiIIll)))) | (~(~((2440472658 & iiiilIliiI) ^ lIiIIilIli)))) ^ (((((IIiiiIIill & 3913500427) | (liIlIiiiil ^ 2081685968)) | IiIlllilII) & (2533036646 ^ ((2309295369 ^ 3508589138) ^ (~lIiliIIliI)))) | ((((1475639815 | lliiIIilli) ^ (illilillII | IIIiIlIiIl)) & ((3994550317 & liIIliIlll) & (liIiIlIIli ^ 382928417))) & ((~1774792488) & ((1673281464 ^ llllIiIIlI) | (iIlIliiIii ^ IiilillIIi))))))) & (~lIllIIllil))) ^ ((~(((((~(~(IIIillliiI & IIlIilllll))) & (~1023425418)) & ((((174332488 | iIiiiIIiii) | (iiIillIlli & lliIIlIIli)) | ((2713375997 | 2413166229) ^ iilliiiiIi)) | 3179235054)) ^ ((lIIiIiIIii | ((~598600916) | ((IlIliIiIii | IiIlilliII) ^ (~3759091976)))) | ((~(~(liIliIlIlI ^ 3844785463))) ^ (~((~365937032) | (1538737890 ^ liIliilIlI)))))) & (1872100136 & IiiiiIlllI))) | (~(((((((~861427195) ^ (2918173908 ^ iilIiiliil)) ^ ((lllIlIiIlI & IIlliIIlil) | (iiiIIlIlIl | 3219018794))) ^ ((~(IlIiIiiIll | IliiiiillI)) & (~(illiiiIiil ^ 1431193537)))) | ((~2890447430) ^ liiilliliI)) & (~208761875)) & ((~2021829566) ^ (((((iiliiiiiil | IIlIIIlIIi) & (illillilil | 629457641)) ^ 2748695811) & (((1882401206 | IllIIllIlI) & (~2260514738)) | ((IiliiiIiiI & lililIIIIi) & (iliilliiii ^ iIIiIIiIll)))) ^ (((~(1570491372 & 3882850081)) ^ ((~2420135640) & (IiiilIilII ^ lillIIIIIi))) & (((IIiiiIIlil ^ 574879500) ^ (2253108475 | iilIiiilIi)) | ((~lliIilIlll) ^ (1123928645 | 535672692))))))))))
 too slow!
 ```
-1.  伺服器會傳送一個非常長的、使用中序表示法 (Infix Notation) 的位元運算式。
-2.  我們必須在 5 秒的時限內，將這個運算式轉換成等價的逆波蘭表示法 (Reverse Polish Notation, RPN)，並回傳給伺服器。
-3.  這個過程需要成功重複 50 次，才能獲得 Flag。
+1.  The server sends a very long bitwise expression in infix notation.
+2.  Within 5 seconds, we must convert it to equivalent Reverse Polish Notation (RPN) and send it back.
+3.  This must be done successfully 50 times to get the flag.
 `server.py` :
 ```python
 #!/usr/bin/env python3
@@ -302,51 +302,51 @@ def main() -> None:
 if __name__ == '__main__':
     main()
 ```
-從 `server.py` 原始碼中可以看到，運算式包含了 32 位元的整數、由 `i`, `I`, `l` 組成的變數，以及 `~` (NOT), `&` (AND), `^` (XOR), `|` (OR) 這四種位元運算子。由於運算式結構複雜且有嚴格的時間限制，手動轉換是不可能的，必須撰寫自動化腳本來解決。
+From `server.py`, expressions include 32-bit integers, variables made of `i`, `I`, `l`, and operators `~`, `&`, `^`, `|`. Because expressions are complex and time is strict, manual conversion is impractical; automation is required.
 
-#### **解題思路**
+#### **Approach**
 
-解題的核心是將中序運算式轉換為逆波蘭表示法。這個問題最經典的演算法是 **調度場演算法 (Shunting-yard algorithm)**。
+The core is converting infix expressions to RPN. The classic algorithm is the **Shunting-yard algorithm**.
 
-調度場演算法的原理是：
+Shunting-yard algorithm principles:
 
-1.  遍歷中序運算式的每一個 token（數字、變數、運算子、括號）。
-2.  使用一個佇列 (queue) 作為輸出，以及一個堆疊 (stack) 來暫存運算子。
-3.  **數字或變數**：直接放入輸出佇列。
-4.  **運算子**：與堆疊頂端的運算子比較優先級。如果當前運算子的優先級小於或等於堆疊頂端的運算子，就將堆疊頂端的運算子彈出至輸出佇列，直到條件不滿足為止，最後再將當前運算子推入堆疊。
-5.  **左括號 `(`**：直接推入運算子堆疊。
-6.  **右括號 `)`**：將運算子堆疊中的運算子不斷彈出至輸出佇列，直到遇到左括號為止。最後將左括號從堆疊中彈出並丟棄。
-7.  遍歷完所有 token 後，將堆疊中剩餘的所有運算子依次彈出至輸出佇列。
+1.  Iterate through each infix token (numbers, variables, operators, parentheses).
+2.  Use an output queue and an operator stack.
+3.  **Number/variable**: push directly to output queue.
+4.  **Operator**: compare precedence with the stack top. If current precedence is lower/equal (for left-associative case), pop from stack to output until condition fails, then push current operator.
+5.  **Left parenthesis `(`**: push onto operator stack.
+6.  **Right parenthesis `)`**: pop operators to output until left parenthesis appears, then discard it.
+7.  After all tokens, pop remaining operators to output queue.
 
-最終，輸出佇列中的內容就是轉換後的 RPN 運算式。
+Finally, the output queue is the converted RPN expression.
 
-#### **程式碼實現**
+#### **Implementation**
 
-我們使用 Python 的 `pwntools` 函式庫來處理與伺服器的網路通訊，並實現上述的調度場演算法。
+We use Python `pwntools` for network interaction and implement the above Shunting-yard logic.
 
 ```python
 import re
 import sys
 from pwn import *
 
-# 中序 (infix) 轉 逆波蘭表示法 (RPN) 的 Shunting-yard 演算法
+# Shunting-yard algorithm: infix to RPN
 def to_rpn(infix_str: str) -> str:
-    # 運算子優先級
+    # Operator precedence
     precedence = {'~': 3, '&': 2, '^': 1, '|': 0}
-    # ~ 是右結合，其他是左結合
+    # ~ is right-associative; others are left-associative
     associativity = {'~': 'right', '&': 'left', '^': 'left', '|': 'left'}
     
     output_queue = []
     operator_stack = []
 
-    # 使用正則表達式來正確分割 token
-    # 匹配數字、變數(由i,I,l組成)、運算子或括號
+    # Use regex to tokenize correctly
+    # Match numbers, variables (i/I/l), operators, or parentheses
     tokens = re.findall(r'[0-9]+|[iIl]+|[~&^|()]', infix_str)
 
     for token in tokens:
-        if token.isalnum():  # 數字或變數
+        if token.isalnum():  # number or variable
             output_queue.append(token)
-        elif token in precedence:  # 運算子
+        elif token in precedence:  # operator
             while (operator_stack and operator_stack[-1] != '(' and
                    (precedence[operator_stack[-1]] > precedence[token] or
                     (precedence[operator_stack[-1]] == precedence[token] and associativity[token] == 'left'))):
@@ -358,18 +358,18 @@ def to_rpn(infix_str: str) -> str:
             while operator_stack and operator_stack[-1] != '(':
                 output_queue.append(operator_stack.pop())
             if operator_stack and operator_stack[-1] == '(':
-                operator_stack.pop() # 彈出左括號
+                operator_stack.pop() # pop left parenthesis
     
-    # 將剩餘的運算子從堆疊中彈出
+    # Pop remaining operators from the stack
     while operator_stack:
         output_queue.append(operator_stack.pop())
         
     return ' '.join(output_queue)
 
-# --- 主程式 ---
-# 替換成你的遠端主機和端口
+# --- Main ---
+# Replace with your remote host and port
 conn = remote('gacha-gate.chal.idek.team', 1337)
-# 如果在本機測試，請使用 process
+# For local testing, use process
 # conn = process(['python', 'server.py'])
 
 
@@ -377,7 +377,7 @@ conn.recvuntil(b'lets play a game!\n')
 
 for i in range(50):
     try:
-        # 接收一行，直到換行符
+        # Receive one line up to newline
         line = conn.recvline().decode().strip()
         print(f"[*] Round {i+1}/50")
         print(f"  [-] Received: {line}")
@@ -386,14 +386,14 @@ for i in range(50):
             print("[!] Received empty line, exiting.")
             break
 
-        # 轉換為 RPN
+        # Convert to RPN
         rpn_expr = to_rpn(line)
         print(f"  [+] Sending RPN: {rpn_expr}")
 
-        # 發送 RPN 並加上換行符
+        # Send RPN with newline
         conn.sendline(rpn_expr.encode())
         
-        # 接收伺服器的回應
+        # Receive server response
         response = conn.recvline().decode().strip()
         if 'wrong!' in response or 'invalid' in response:
             print(f"[!] Error: {response}")
@@ -404,16 +404,16 @@ for i in range(50):
         print("[!] Connection closed by server.")
         break
 
-# 接收最後的 FLAG
+# Receive final FLAG
 flag = conn.recvall().decode()
 print(f"\n[+] FLAG: {flag.strip()}")
 
 conn.close()
 ```
 
-#### **取得 Flag**
+#### **Getting the Flag**
 
-執行上述腳本，它會自動完成 50 回合的問答，最終伺服器會回傳 Flag。
+Run the script to automatically complete 50 rounds; the server then returns the flag.
 
 ```shell
 ...
@@ -423,4 +423,4 @@ conn.close()
 [+] FLAG: idek{n4nds_r_funct10nally_c0mpl3t3!}
 ```
 
-成功取得 Flag：`idek{n4nds_r_funct10nally_c0mpl3t3!}`
+Successfully obtained flag: `idek{n4nds_r_funct10nally_c0mpl3t3!}`
