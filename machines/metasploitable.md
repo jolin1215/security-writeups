@@ -1,13 +1,13 @@
-`sudo netdiscover -i eth0` (偵測在同一個網段內有哪些裝置在線)
+`sudo netdiscover -i eth0` (Detect which devices are online on the same subnet)
 ![image](https://hackmd.io/_uploads/H1yXPlm9ke.png)
-`nmap`掃描
+`nmap` scan
 ![image](https://hackmd.io/_uploads/r1LWFlQ9kg.png)
-`enum4linux -a 192.168.121.131`(查看共享清單)
+`enum4linux -a 192.168.121.131` (List shared resources)
 ![image](https://hackmd.io/_uploads/BJ4J0g79ye.png)
 ![image](https://hackmd.io/_uploads/HkE2Aem51e.png)
-RC進去tmp
+Access `tmp` via `rc`
 ![image](https://hackmd.io/_uploads/S1lViZQ51l.png)
-TCP 連接埠 512、513 和 514 稱為「r」服務，並且被錯誤地配置為允許從任何主機進行遠端存取，故切換為root
+TCP ports 512, 513, and 514 are the “r” services and were misconfigured to allow remote access from any host, so switch to root.
 ![image](https://hackmd.io/_uploads/B1nysUYc1l.png)
-`http://192.168.121.131`(有80 port)
+`http://192.168.121.131` (port 80 is open)
 ![image](https://hackmd.io/_uploads/H1eD1wK9Je.png)
