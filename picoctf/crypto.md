@@ -59,6 +59,3 @@ Use the [ROT13 decoder](http://www.hiencode.com/rot13.html).
 ![image](https://hackmd.io/_uploads/S1sW0wQrxg.png)
 
 **Flag: picoCTF{thenumbersmason}**
-
-##
-**Flag:**
