@@ -47,6 +47,7 @@ function tryLogin(e){
   The flag is hidden inside this function — it's left here for debugging but not used.
   Players solving the CTF should open the page source / developer tools and read this file.
 */
+
 function adminBackdoor(){
   const username = "admin";
   const password = "letmein";
