@@ -21,7 +21,7 @@
 
 ```html
 <!-- On trusted-site.com -->
-<a href="http://malicious-site.com" target="_blank">Click here to see something interesting</a>
+<a href="http://malicious-site.com" target="_blank">Click here to see something interesting</a>```
 
 An attacker can place malicious JavaScript code on `malicious-site.com`.
 
