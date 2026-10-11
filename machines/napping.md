@@ -19,10 +19,10 @@
     - What is Tabnapping?
       When a web page A contains a link pointing to web page B, and that link uses the `target="_blank"` attribute, the new tab B (the newly opened tab) can access and manipulate the original page A through the `window.opener` JavaScript object.
 
-```html
+```
 <!-- On trusted-site.com -->
 <a href="http://malicious-site.com" target="_blank">Click here to see something interesting</a>
-
+```
 An attacker can place malicious JavaScript code on `malicious-site.com`.
 
 Attack flow:
@@ -32,10 +32,12 @@ A new tab opens: The malicious website B opens in a new browser tab.
 Malicious code executes: JavaScript on website B runs. This code uses `window.opener.location` to redirect the original tab (website A) to a fake login page.
 
 
-```// Code on malicious-site.com
+```
+// Code on malicious-site.com
 if (window.opener) {
   window.opener.location.replace('http://fake-login-page.com');
 }
+```
 
 * The user returns to the original tab: When the user finishes viewing the new tab and closes it, they return to the original tab and see what appears to be the same page, but it is actually a fake login page (for example, disguised as a "Your account login" or "Bank login" page).
 * Credential theft: The user, without suspicion, enters their username and password on the fake login page. These credentials are then sent to the attacker’s server.
